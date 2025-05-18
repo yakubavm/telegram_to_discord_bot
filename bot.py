@@ -1,6 +1,8 @@
 import os
 import logging
 import discord
+import asyncio
+
 from telegram import Update
 from telegram.ext import Application, MessageHandler, filters, ContextTypes
 
@@ -11,14 +13,14 @@ TELEGRAM_BOT_TOKEN = os.environ.get('TELEGRAM_BOT_TOKEN')
 DISCORD_BOT_TOKEN = os.environ.get('DISCORD_BOT_TOKEN')
 
 if not TELEGRAM_BOT_TOKEN or not DISCORD_BOT_TOKEN:
-    raise RuntimeError("Токени не задані у змінних оточення!")
+    raise RuntimeError("Токени не задані!")
 
 intents = discord.Intents.default()
 intents.message_content = True
 discord_client = discord.Client(intents=intents)
 
 HASHTAG_TO_CHANNEL = {
-    '#3dprint': 1373507331924693094,  # заміни на свої ID
+    '#3dprint': 1373507331924693094,  # заміни на свої Discord channel ID
     '#logo': 1373507348735463434,
     '#wallpaper': 1373507362886909952,
 }
@@ -79,13 +81,11 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 telegram_app = Application.builder().token(TELEGRAM_BOT_TOKEN).build()
 telegram_app.add_handler(MessageHandler(filters.ALL, handle_message))
 
-import asyncio
-
 async def main():
-    # Запускаємо одночасно Discord і Telegram боти
+    # Запускаємо Discord
     discord_task = asyncio.create_task(discord_client.start(DISCORD_BOT_TOKEN))
-    telegram_task = asyncio.create_task(telegram_app.start())
-    await telegram_app.updater.start_polling()  # починаємо приймати оновлення
+    # Запускаємо Telegram (async run_polling)
+    telegram_task = asyncio.create_task(telegram_app.run_polling())
 
     await asyncio.gather(discord_task, telegram_task)
 
